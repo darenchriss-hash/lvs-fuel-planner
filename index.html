@@ -703,7 +703,7 @@ function render(o){
   let h=`<div class="summary"><div class="route">${esc(label)}</div>
     <div class="meta">${Math.round(D)} mi</div><div class="meta">${esc(r.highways||"")}</div><div class="meta">${r.source==="approx"?"Approximate route (no Claude), check stops on the map":(r.source==="saved"?"Saved route":"Route by Claude")}</div><div class="meta">${on.length} network stations on route</div></div>`;
   if(res.stops.length){
-    h+=`<div class="save">${(o.mids||[]).length?"Fuel for the whole trip ("+((o.mids||[]).length+1)+" stops)":"Fuel cost"} <b>${money(cost)}</b> for ${bought} gal${res.stops.length?" in "+res.stops.length+" stop"+(res.stops.length>1?"s":""):""}. Saves about <b>${money(Math.max(0,vsAvg))}</b> vs. a random Pilot on this route, ${money(Math.max(0,vsRetail))} vs. pump price.</div>`;
+    h+=`<div class="save">${(o.mids||[]).length?"Fuel for the whole trip":"Fuel cost"} <b>${money(cost)}</b> for ${bought} gal${res.stops.length?" in "+res.stops.length+" stop"+(res.stops.length>1?"s":""):""}. Saves about <b>${money(Math.max(0,vsAvg))}</b> vs. a random Pilot on this route, ${money(Math.max(0,vsRetail))} vs. pump price.</div>`;
   } else {
     h+=`<div class="save">No fuel needed: the truck can make it with the fuel it has and stay above ${o.reserve} gal.</div>`;
   }
