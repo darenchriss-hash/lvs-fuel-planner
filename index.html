@@ -620,7 +620,7 @@ const TRUCKS="001 01 002 111 852 888 1016 1201 1202 1210 1493 1597 2011 2263 231
 function companyName(){ const c=ELD[$("company").value]||ELD.LVS; return c.company+", "+c.eld; }
 /* ---------- Five ELD (through our server helper: keys stay on the server) ---------- */
 let ELDUNITS={};
-function eldUrl(){ try{ return localStorage.getItem("lvsEldUrl")||""; }catch(e){ return ""; } }
+function eldUrl(){ try{ return localStorage.getItem("lvsEldUrl")||"https://lvs-eld.darenchriss.workers.dev"; }catch(e){ return ""; } }
 function nearestCity(lat,lng){ let best=null,bd=1e9; const scan=v=>{ const d=hav([lat,lng],[v.lat,v.lng]); if(d<bd){ bd=d; best=v; } };
   if(CITYMAP) for(const v of CITYMAP.values()) scan(v); if(PLACES) for(const v of PLACES.values()) scan(v);
   return best?{label:best.city+", "+best.st, d:bd}:null; }
