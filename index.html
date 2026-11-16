@@ -134,6 +134,11 @@ code{font-size:12px;word-break:break-all}
         <option value="TAU">TAU LLC – ZigZag ELD</option>
       </select>
       <p class="hint" id="eldHint" style="margin-top:4px"></p>
+      <div id="eldBox" style="margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:8px">
+        <div class="flex" style="flex-wrap:nowrap;gap:6px"><button class="ghost" type="button" id="eldLoad" style="flex:1">↻ Load trucks from Five ELD</button><button class="ghost" type="button" id="eldSet" aria-label="ELD settings" style="padding:9px 12px">⚙</button></div>
+        <div id="eldCfg" style="display:none;margin-top:8px"><label for="eldUrl">ELD server link</label><input id="eldUrl" placeholder="https://lvs-eld.xxxx.workers.dev" autocomplete="off"><p class="hint" style="margin-top:4px">Saved only in this browser. API keys are never stored on this site.</p></div>
+        <p class="hint" id="eldMsg" style="margin-top:6px">Location and fuel % fill in automatically when you pick a truck.</p>
+      </div>
       <label for="hos">Driver hours left today (from ELD)</label>
       <input id="hos" type="number" min="0" max="11" step="0.5" value="11">
       <p class="hint" style="margin-top:4px">Check the driver's available drive time in the ELD and enter it. 11 = fresh driver.</p>
@@ -385,19 +390,54 @@ function buildPlaces(){
   const dl=$("places");
   if(dl) dl.innerHTML=[...m.values()].sort((a,b)=>(b.major-a.major)||a.city.localeCompare(b.city)).map(p=>`<option value="${esc(p.city+", "+p.st)}"></option>`).join("");
 }
+/* all US cities (about 30,000, big and small), loaded once from a public data set */
+const CITY_URL="https://cdn.jsdelivr.net/gh/kelvins/US-Cities-Database@main/csv/us_cities.csv";
+let CITYMAP=null, CITYIDX=null, CITY_PROMISE=null;
+function loadCities(){
+  if(CITY_PROMISE) return CITY_PROMISE;
+  CITY_PROMISE=fetch(CITY_URL).then(r=>r.ok?r.text():"").then(t=>{
+    const m=new Map(), idx=new Map();
+    t.split(/\r?\n/).slice(1).forEach(line=>{
+      if(!line) return;
+      const f=[]; let cur="", q=false;
+      for(const ch of line){ if(ch==='"') q=!q; else if(ch===','&&!q){ f.push(cur); cur=""; } else cur+=ch; }
+      f.push(cur);
+      const st=f[1], city=f[3], lat=+f[5], lng=+f[6];
+      if(!st||!city||!isFinite(lat)||!isFinite(lng)) return;
+      const n=normCity(city), k=n+"|"+st;
+      if(m.has(k)) return;
+      const v={city, st, lat, lng, major:false}; m.set(k,v);
+      if(!idx.has(n)) idx.set(n,[]); idx.get(n).push(v);
+    });
+    if(m.size){ CITYMAP=m; CITYIDX=idx; }
+  }).catch(()=>{});
+  return CITY_PROMISE;
+}
 function geocode(txt){
   if(!PLACES) buildPlaces();
   let s=String(txt||"").trim(), st=null;
   const m=s.match(/^(.*?)[,\s]+([A-Za-z]{2})$/);
   if(m && STATES.includes(m[2].toUpperCase())){ s=m[1]; st=m[2].toUpperCase(); }
   const c=normCity(s); if(!c) return null;
-  if(st) return PLACES.get(c+"|"+st)||null;
+  if(st) return PLACES.get(c+"|"+st) || (CITYMAP&&CITYMAP.get(c+"|"+st)) || null;
   const all=[...PLACES.entries()].filter(([k])=>k.split("|")[0]===c).map(([,v])=>v);
+  (CITYIDX&&CITYIDX.get(c)||[]).forEach(v=>{ if(!all.some(a=>a.st===v.st)) all.push(v); });
   if(!all.length) return null;
   const maj=all.filter(p=>p.major);
   if(maj.length===1) return maj[0];
   if(all.length===1) return all[0];
   return {ambiguous:all.map(p=>p.city+", "+p.st)};
+}
+/* suggestions while typing: big cities first, then every US town that matches */
+function suggest(val){
+  const dl=$("places"); if(!dl) return;
+  const q=normCity(String(val||"").replace(/,.*$/,"")); if(q.length<2) return;
+  const seen=new Set(), out=[];
+  const add=v=>{ const k=v.city+", "+v.st; if(seen.has(k)) return; seen.add(k); out.push(k); };
+  if(PLACES) for(const v of PLACES.values()){ if(v.major && normCity(v.city).startsWith(q)) add(v); }
+  if(PLACES) for(const v of PLACES.values()){ if(out.length>=40) break; if(normCity(v.city).startsWith(q)) add(v); }
+  if(CITYMAP) for(const v of CITYMAP.values()){ if(out.length>=40) break; if(normCity(v.city).startsWith(q)) add(v); }
+  dl.innerHTML=out.map(k=>`<option value="${esc(k)}"></option>`).join("");
 }
 function dedupStations(){
   if(DEDUP) return DEDUP; const out=[];
@@ -578,7 +618,29 @@ function addStop(){ const n=3+(++stopCount); const L=String.fromCharCode(64+n);
 const ELD={LVS:{company:"LVS Logistics",eld:"Five ELD",url:""},TAU:{company:"TAU LLC",eld:"ZigZag ELD",url:""}};
 const TRUCKS="001 01 002 111 852 888 1016 1201 1202 1210 1493 1597 2011 2263 2316 2396 2425 2692 2722 3020 3821 3863 3906 4080 4277 5066 5093 5103 5106 5138 5565 5883 6021 6534 7709".split(" ");
 function companyName(){ const c=ELD[$("company").value]||ELD.LVS; return c.company+", "+c.eld; }
-function showEld(){ const c=ELD[$("company").value]||ELD.LVS; $("eldHint").innerHTML="ELD: <b>"+esc(c.eld)+"</b>. Check the truck location and driver hours there."+(c.url?` <a href="${esc(c.url)}" target="_blank" rel="noopener">Open ${esc(c.eld)}</a>`:""); }
+/* ---------- Five ELD (through our server helper: keys stay on the server) ---------- */
+let ELDUNITS={};
+function eldUrl(){ try{ return localStorage.getItem("lvsEldUrl")||""; }catch(e){ return ""; } }
+function nearestCity(lat,lng){ let best=null,bd=1e9; const scan=v=>{ const d=hav([lat,lng],[v.lat,v.lng]); if(d<bd){ bd=d; best=v; } };
+  if(CITYMAP) for(const v of CITYMAP.values()) scan(v); if(PLACES) for(const v of PLACES.values()) scan(v);
+  return best?{label:best.city+", "+best.st, d:bd}:null; }
+async function eldLoad(){
+  const u=eldUrl().replace(/\/+$/,""); if(!u){ $("eldCfg").style.display="block"; $("eldMsg").textContent="Paste the ELD server link first (⚙)."; return; }
+  $("eldMsg").textContent="Loading trucks from Five ELD…";
+  try{ const r=await fetch(u+"/units"); const j=await r.json(); if(!r.ok||j.error) throw new Error(j.error||("HTTP "+r.status));
+    await Promise.race([loadCities(), new Promise(x=>setTimeout(x,6000))]);
+    ELDUNITS={}; (j.units||[]).forEach(x=>{ if(x.truck_number) ELDUNITS[String(x.truck_number).trim()]=x; });
+    const dl=$("trucks"); const have=new Set([...dl.options].map(o=>o.value)); Object.keys(ELDUNITS).forEach(k=>{ if(!have.has(k)) dl.insertAdjacentHTML("beforeend",`<option value="${esc(k)}"></option>`); });
+    $("eldMsg").textContent="Five ELD: "+Object.keys(ELDUNITS).length+" trucks loaded. Pick a truck #.";
+    if($("truck").value.trim()) eldFill();
+  }catch(e){ $("eldMsg").textContent="Five ELD error: "+e.message; } }
+function eldFill(){ const x=ELDUNITS[$("truck").value.trim()]; if(!x) return; const out=[];
+  if(x.coordinates&&isFinite(x.coordinates.lat)){ const c=nearestCity(x.coordinates.lat,x.coordinates.lng); if(c){ $("from").value=c.label; out.push("near "+c.label+(c.d>3?" ("+Math.round(c.d)+" mi)":"")); } }
+  if(isFinite(x.fuelLevelPercent)){ $("now").value=Math.round(x.fuelLevelPercent); out.push("fuel "+Math.round(x.fuelLevelPercent)+"%"); }
+  const age=x.timestamp?Math.round((Date.now()-new Date(x.timestamp))/60000):null;
+  $("eldMsg").textContent="Truck "+$("truck").value.trim()+" from Five ELD: "+(out.join(", ")||"no location/fuel data")+(age!=null?" · updated "+(age<60?age+" min":Math.round(age/60)+" h")+" ago":"")+"."; }
+function showEld(){ const box=$("eldBox"); if(box) box.style.display=$("company").value==="LVS"?"block":"none"; 
+ const c=ELD[$("company").value]||ELD.LVS; $("eldHint").innerHTML="ELD: <b>"+esc(c.eld)+"</b>. Check the truck location and driver hours there."+(c.url?` <a href="${esc(c.url)}" target="_blank" rel="noopener">Open ${esc(c.eld)}</a>`:""); }
 
 /* ---------- trip guide (HOS: 30-min break by 8 h driving, 11 h driving then 10 h off) ---------- */
 function buildGuide(o, label){
@@ -644,6 +706,7 @@ async function plan(){
   if(!(cap>0&&mpg>0&&pct>=0&&pct<=100&&reserve>=0&&reserve<cap)){ setStatus("Check tank, fuel %, MPG and minimum.", true); return; }
   if(!stations.length){ setStatus("No prices saved yet. Update prices from Relay first.", true); return; }
   $("planBtn").disabled=true; setStatus("Finding the truck route\u2026");
+  await Promise.race([loadCities(), new Promise(r=>setTimeout(r,6000))]);
   const key=routeKey(rf,rv,rt);
   let r=await cachedRoute(key), lastErr=null;
   if(!r && sample){
@@ -723,7 +786,7 @@ function render(o){
       <div class="c">${p.gal} gal<small>${money(p.cost)}</small></div></li>`).join("")+`</ol>`;
   }
   const msg=driverMsg(o, label);
-  h+=`<div class="msg"><div class="flex"><strong>Message for the driver</strong><button class="ghost" id="copyMsg">Copy message</button><span id="copyNote" class="hint"></span></div><pre id="msgText">${esc(msg)}</pre></div>`;
+  h+=`<div class="msg"><div class="flex"><strong>Message for the driver</strong><button class="ghost" id="copyMsg">Copy message</button><a class="ghostlink" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a><a class="ghostlink" href="https://t.me/share/url?url=%20&text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Telegram</a><a class="ghostlink" href="sms:?&body=${encodeURIComponent(msg)}">SMS</a><span id="copyNote" class="hint"></span></div><pre id="msgText">${esc(msg)}</pre></div>`;
   const guide=buildGuide(o,label);
   h+=guide.html;
   h+=`<p class="hint">Route miles and positions are approximate. Prices are from Relay, ${esc(ago(priceMeta&&priceMeta.updatedAt))}. Check the stop in the Relay app before fueling.</p>`;
@@ -782,7 +845,15 @@ $("planBtn").onclick=plan;
 $("trucks").innerHTML=TRUCKS.map(t=>`<option value="${t}"></option>`).join("");
 $("company").onchange=showEld; showEld();
 $("addStop").onclick=addStop;
+loadCities();
+document.addEventListener("input",e=>{ const t=e.target; if(t && t.getAttribute && t.getAttribute("list")==="places") suggest(t.value); });
 $("truck").addEventListener("change",fillTruck);
+$("truck").addEventListener("change",eldFill);
+$("eldLoad").onclick=eldLoad;
+$("eldSet").onclick=()=>{ const c=$("eldCfg"); c.style.display=c.style.display==="none"?"block":"none"; };
+$("eldUrl").value=eldUrl();
+$("eldUrl").addEventListener("change",()=>{ try{ localStorage.setItem("lvsEldUrl",$("eldUrl").value.trim()); }catch(e){} if($("eldUrl").value.trim()) eldLoad(); });
+if(eldUrl()) setTimeout(eldLoad,500);
 $("savePrices").onclick=savePrices;
 $("copyBm").onclick=async()=>{ const ok=await copyText(BOOKMARK); $("bmNote").textContent= ok?"Copied. Paste it as the bookmark URL.":"Copy failed."; };
 ["from","to","via","truck"].forEach(id=>$(id).addEventListener("keydown",e=>{ if(e.key==="Enter") plan(); }));
