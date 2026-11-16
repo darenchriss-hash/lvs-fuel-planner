@@ -137,7 +137,8 @@ code{font-size:12px;word-break:break-all}
       <div id="eldBox" style="margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:8px">
         <div class="flex" style="flex-wrap:nowrap;gap:6px"><button class="ghost" type="button" id="eldLoad" style="flex:1">↻ Load trucks from Five ELD</button><button class="ghost" type="button" id="eldSet" aria-label="ELD settings" style="padding:9px 12px">⚙</button></div>
         <div id="eldCfg" style="display:none;margin-top:8px"><label for="eldUrl">ELD server link</label><input id="eldUrl" placeholder="https://lvs-eld.xxxx.workers.dev" autocomplete="off"><p class="hint" style="margin-top:4px">Saved only in this browser. API keys are never stored on this site.</p></div>
-        <p class="hint" id="eldMsg" style="margin-top:6px">Location and fuel % fill in automatically when you pick a truck.</p>
+        <p class="hint" id="eldMsg" style="margin-top:6px">Location and fuel % fill in automatically when you pick a truck (number or VIN).</p>
+        <div id="eldCard" style="margin-top:6px;font-size:14px;line-height:1.5"></div>
       </div>
       <label for="hos">Driver hours left today (from ELD)</label>
       <input id="hos" type="number" min="0" max="11" step="0.5" value="11">
@@ -630,15 +631,23 @@ async function eldLoad(){
   try{ const r=await fetch(u+"/units"); const j=await r.json(); if(!r.ok||j.error) throw new Error(j.error||("HTTP "+r.status));
     await Promise.race([loadCities(), new Promise(x=>setTimeout(x,6000))]);
     ELDUNITS={}; (j.units||[]).forEach(x=>{ if(x.truck_number) ELDUNITS[String(x.truck_number).trim()]=x; });
-    const dl=$("trucks"); const have=new Set([...dl.options].map(o=>o.value)); Object.keys(ELDUNITS).forEach(k=>{ if(!have.has(k)) dl.insertAdjacentHTML("beforeend",`<option value="${esc(k)}"></option>`); });
+    const dl=$("trucks"); const have=new Set([...dl.options].map(o=>o.value)); Object.keys(ELDUNITS).forEach(k=>{ const x=ELDUNITS[k], lab=(x.vin?"VIN "+x.vin:"")+(isFinite(x.fuelLevelPercent)?" \u00b7 "+Math.round(x.fuelLevelPercent)+"%":""); const o=[...dl.options].find(o=>o.value===k); if(o) o.label=lab; else dl.insertAdjacentHTML("beforeend",`<option value="${esc(k)}" label="${esc(lab)}"></option>`); });
     $("eldMsg").textContent="Five ELD: "+Object.keys(ELDUNITS).length+" trucks loaded. Pick a truck #.";
     if($("truck").value.trim()) eldFill();
   }catch(e){ $("eldMsg").textContent="Five ELD error: "+e.message; } }
-function eldFill(){ const x=ELDUNITS[$("truck").value.trim()]; if(!x) return; const out=[];
-  if(x.coordinates&&isFinite(x.coordinates.lat)){ const c=nearestCity(x.coordinates.lat,x.coordinates.lng); if(c){ $("from").value=c.label; out.push("near "+c.label+(c.d>3?" ("+Math.round(c.d)+" mi)":"")); } }
-  if(isFinite(x.fuelLevelPercent)){ $("now").value=Math.round(x.fuelLevelPercent); out.push("fuel "+Math.round(x.fuelLevelPercent)+"%"); }
+function eldFind(v){ v=String(v||"").trim().toUpperCase(); if(!v) return null; if(ELDUNITS[v]) return ELDUNITS[v];
+  const all=Object.values(ELDUNITS); return all.find(x=>String(x.vin||"").toUpperCase()===v) || (v.length>=4 ? all.find(x=>String(x.vin||"").toUpperCase().endsWith(v)) : null) || null; }
+function eldFill(){ const x=eldFind($("truck").value); const box=$("eldCard"); if(!x){ if(box) box.innerHTML=""; return; }
+  if(x.truck_number && $("truck").value.trim()!==String(x.truck_number)){ $("truck").value=x.truck_number; fillTruck(); }
+  const cap=+$("tank").value||150; let loc="no GPS from ELD", fuel="no fuel data";
+  if(x.coordinates&&isFinite(x.coordinates.lat)){ const c=nearestCity(x.coordinates.lat,x.coordinates.lng);
+    if(c) $("from").value=c.label;
+    loc=(c?esc(c.label)+(c.d>3?" ("+Math.round(c.d)+" mi away)":""):"")+` <a href="https://www.google.com/maps?q=${x.coordinates.lat},${x.coordinates.lng}" target="_blank" rel="noopener">map</a>`; }
+  if(isFinite(x.fuelLevelPercent)){ const pct=Math.round(x.fuelLevelPercent); $("now").value=pct; fuel=`<b>${pct}%</b> ≈ <b>${Math.round(cap*x.fuelLevelPercent/100)} gal</b> of ${cap} gal tank`; }
   const age=x.timestamp?Math.round((Date.now()-new Date(x.timestamp))/60000):null;
-  $("eldMsg").textContent="Truck "+$("truck").value.trim()+" from Five ELD: "+(out.join(", ")||"no location/fuel data")+(age!=null?" · updated "+(age<60?age+" min":Math.round(age/60)+" h")+" ago":"")+"."; }
+  const ago=age==null?"":(age<60?age+" min":age<2880?Math.round(age/60)+" h":Math.round(age/1440)+" days")+" ago";
+  box.innerHTML=`<div><b>Truck ${esc(x.truck_number||"")}</b>${x.vin?" · VIN "+esc(x.vin):""}</div><div>📍 Location: ${loc}</div><div>⛽ Fuel: ${fuel}</div>${ago?`<div class="hint" style="margin:2px 0 0">Five ELD update: ${ago}${age>360?" – old data, check with driver":""}</div>`:""}`;
+  $("eldMsg").textContent="Filled from Five ELD: start city and fuel %."; }
 function showEld(){ const box=$("eldBox"); if(box) box.style.display=$("company").value==="LVS"?"block":"none"; 
  const c=ELD[$("company").value]||ELD.LVS; $("eldHint").innerHTML="ELD: <b>"+esc(c.eld)+"</b>. Check the truck location and driver hours there."+(c.url?` <a href="${esc(c.url)}" target="_blank" rel="noopener">Open ${esc(c.eld)}</a>`:""); }
 
@@ -849,6 +858,7 @@ loadCities();
 document.addEventListener("input",e=>{ const t=e.target; if(t && t.getAttribute && t.getAttribute("list")==="places") suggest(t.value); });
 $("truck").addEventListener("change",fillTruck);
 $("truck").addEventListener("change",eldFill);
+$("tank").addEventListener("change",()=>{ if(eldFind($("truck").value)) eldFill(); });
 $("eldLoad").onclick=eldLoad;
 $("eldSet").onclick=()=>{ const c=$("eldCfg"); c.style.display=c.style.display==="none"?"block":"none"; };
 $("eldUrl").value=eldUrl();
