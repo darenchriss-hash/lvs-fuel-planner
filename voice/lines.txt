@@ -1,4 +1,4 @@
-Welcome! This is a quick guide to the LVS Fuel Planner. It finds the cheapest fuel stops on our Relay network, Pilot, Flying J and One9, at our company discount.
+Welcome! This is a quick guide to the LVS Fuel Planner. It finds the cheapest fuel stops on our Relay network, Pilot, Flying J, One9 and Love's, at our company discount.
 Open the site from the link. It works on a computer and on a phone, and you don't need to log in.
 On the left is the trip form. On the right, the fuel plan will appear. Just fill in the form from top to bottom.
 Step one: pick the truck. Click Truck number and type it in. You can also type the VIN.
@@ -9,11 +9,11 @@ Step three: type the delivery city, and pick it from the list. For example, Chic
 Is there a next load expected after this delivery? Type it in C, for example Denver, Colorado. For more stops, press Add stop. Fuel is planned for the whole trip, so the driver doesn't fuel twice.
 Step four: check the truck numbers. The tank size and the fuel level fill in by themselves. MPG is six point five, and thirty gallons is the safety reserve. Only change a number if you know better.
 Max off route is how far a station can be from the route. Five miles is good. Departure time is optional.
-Step five: press Plan fuel stops.
-Here is the plan: the total fuel cost, and how much we save compared to a random Pilot, and to the pump price.
+Step five: press Plan fuel stops. The site compares every Pilot and Love's on the route.
+Here is the plan for the whole trip: the fuel stops, the total fuel cost, and how much we save compared to the pump price.
 This line shows where each stop is on the route.
 The map shows the route, the start, the delivery, and the fuel stops.
-For each stop you get the station number, the full address for the driver, our price, how many gallons to buy, and how much fuel will be in the tank.
+For each stop you get the station, Pilot or Love's, the full address for the driver, our price, how many gallons to buy, and how much fuel will be in the tank.
 Step six: send the plan to the driver. Copy the message, or send it by WhatsApp, Telegram, or text, in one click.
 Below is the trip guide: when and where to fuel, and the delivery, plus safety tips for the driver.
 One tip: if a truck is not in Five ELD, like our TAU trucks on ZigZag, the site tells you. Just type the start city and the fuel level yourself.
