@@ -1,0 +1,37 @@
+name: voice
+on:
+  push:
+    branches: [main]
+    paths: ['voice/lines.txt']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install edge-tts==6.1.12
+      - name: Make audio
+        run: |
+          mkdir -p out
+          i=0
+          while IFS= read -r line || [ -n "$line" ]; do
+            [ -z "$line" ] && continue
+            n=$(printf "%02d" $i)
+            edge-tts --voice en-US-JennyNeural --rate=+0% --text "$line" --write-media out/$n.mp3
+            i=$((i+1))
+          done < voice/lines.txt
+          ls -la out
+      - name: Push to tts branch
+        run: |
+          git config user.name "voice-bot"
+          git config user.email "voice-bot@users.noreply.github.com"
+          git checkout --orphan tts
+          git rm -rf --cached . > /dev/null
+          git add out
+          git commit -m "voice files"
+          git push -f origin tts
