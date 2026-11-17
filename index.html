@@ -180,7 +180,7 @@ code{font-size:12px;word-break:break-all}
   </section>
 </div>
 
-<datalist id="places"></datalist><script src="prices.js"></script>
+<datalist id="places"></datalist><script>document.write('<script src="prices.js?v='+Date.now()+'"><\/script>');</script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
