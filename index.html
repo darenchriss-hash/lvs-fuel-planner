@@ -108,7 +108,7 @@ code{font-size:12px;word-break:break-all}
 <div class="wrap">
   <header class="sign">
     <h1>Fuel Planner</h1>
-    <p id="priceInfo">Loading Pilot / Flying J prices…</p>
+    <p id="priceInfo">Loading Pilot / Love's prices…</p>
   </header>
 
   <div class="layout">
@@ -152,7 +152,7 @@ code{font-size:12px;word-break:break-all}
       <label for="depart">Departure (optional)</label>
       <input id="depart" type="datetime-local">
       <button class="go" id="planBtn" disabled>Plan fuel stops</button>
-      <p class="hint">Only Pilot, Flying J and One9 (our Relay fuel network). Price = net price with company discount.</p>
+      <p class="hint">Pilot, Flying J, One9 and Love's (paid through Relay). Price = net price with company discount.</p>
       <div class="status" id="status" role="status" aria-live="polite"></div>
     </section>
 
@@ -184,7 +184,7 @@ code{font-size:12px;word-break:break-all}
 <script>
 (function(){
 const $ = id => document.getElementById(id);
-const BRAND = {P:"Pilot", F:"Flying J", O:"One9"};
+const BRAND = {P:"Pilot", F:"Flying J", O:"One9", L:"Love's"};
 let db=null, sample=null, user=null, stations=[], priceMeta=null;
 
 const BOOKMARK = "javascript:(async()=>{try{const r=await fetch('/api/explore/nearby/?latitude=39&latitude_delta=30&longitude=-96&longitude_delta=70&location_type=fuel&paginate=false&limit=-1&include_fuel_prices=true&include_out_of_range=true&alternatives=true',{credentials:'include'});const a=await r.json();let L='';const rows=[];for(const x of a){const nm=(x.merchant_brand||'')+' '+(x.name||'');if(!/pilot|flying|one.?9/i.test(nm))continue;const f=(x.fuel_prices||[]).find(p=>p.fuel_type==='diesel');if(!f)continue;const b=/flying/i.test(nm)?'F':(/one.?9/i.test(nm)?'O':'P');const n=((x.name||'').match(/#\\s*(\\d+)/)||[])[1]||'';if(f.updated_at>L)L=f.updated_at;rows.push([b,n,(x.city||'').replace(/[|;]/g,''),x.state,(+x.lat).toFixed(3),(+x.lng).toFixed(3),(+f.retail_price_precise).toFixed(3),(+f.discount_price_precise).toFixed(3),String(x.address||'').replace(/[|;]/g,' ').trim(),String(x.zip||'').trim()].join(';'))}const t=JSON.stringify({v:1,src:'relay',updatedAt:L,rows:rows.join('|')});try{await navigator.clipboard.writeText(t)}catch(e){prompt('Copy this text:',t);return}alert('Copied '+rows.length+' Pilot / Flying J prices. Paste them into the Fuel Planner.')}catch(e){alert('Open app.relaypayments.com and log in first.')}})();";
@@ -305,7 +305,7 @@ function planFuelOld(st, D, cap, fuel0, mpg, reserve){
       const cand=st.filter(s=>s.mile>pos && s.mile<=reach);
       if(!cand.length){
         const first=st.find(s=>s.mile>pos);
-        if(!first) return {error:"No Pilot / Flying J on this route within "+$("detour").value+" miles. Try a bigger “Max off route”."};
+        if(!first) return {error:"No Pilot / Love's on this route within "+$("detour").value+" miles. Try a bigger “Max off route”."};
         warn.push("Not enough fuel to reach the first station at mile "+Math.round(first.mile)+" without going under the minimum. Fuel up before departure.");
         fuel=Math.max(fuel, reserve+(first.mile-pos)/mpg);
         cur=first; fuel-=(first.mile-pos)/mpg; pos=first.mile; continue;
@@ -692,7 +692,7 @@ function buildGuide(o, label){
   });
   const tips=[
     "Truck GPS only: set height 13'6\", weight 80,000 lb, length 53' trailer. Do not follow a car navigation app (Google Maps, Apple Maps) off the interstate: car apps do not know low bridges.",
-    "Stay on the planned interstates"+(o.r.highways?" ("+o.r.highways+")":"")+". Leave them only at the exits for the planned stops. Pilot, Flying J and One9 truck stops are built for trucks.",
+    "Stay on the planned interstates"+(o.r.highways?" ("+o.r.highways+")":"")+". Leave them only at the exits for the planned stops. Pilot, Flying J, One9 and Love's truck stops are built for trucks.",
     "Before the last miles to the customer, check the local route in the truck GPS or Trucker Path for low clearances and truck restrictions.",
     "Pay fuel only with Relay. If plans change, call dispatch before fueling somewhere else.",
     "Pre-trip inspection before departure. Watch weather and chain laws in mountain states."];
@@ -778,7 +778,7 @@ function render(o){
   let h=`<div class="summary"><div class="route">${esc(label)}</div>
     <div class="meta">${Math.round(D)} mi</div><div class="meta">${esc(r.highways||"")}</div><div class="meta">${r.source==="approx"?"Approximate route (no Claude), check stops on the map":(r.source==="saved"?"Saved route":"Route by Claude")}</div><div class="meta">${on.length} network stations on route</div></div>`;
   if(res.stops.length){
-    h+=`<div class="save">${(o.mids||[]).length?"Fuel for the whole trip":"Fuel cost"} <b>${money(cost)}</b> for ${bought} gal${res.stops.length?" in "+res.stops.length+" stop"+(res.stops.length>1?"s":""):""}. Saves about <b>${money(Math.max(0,vsAvg))}</b> vs. a random Pilot on this route, ${money(Math.max(0,vsRetail))} vs. pump price.</div>`;
+    h+=`<div class="save">${(o.mids||[]).length?"Fuel for the whole trip":"Fuel cost"} <b>${money(cost)}</b> for ${bought} gal${res.stops.length?" in "+res.stops.length+" stop"+(res.stops.length>1?"s":""):""}. Saves about <b>${money(Math.max(0,vsAvg))}</b> vs. a random truck stop on this route, ${money(Math.max(0,vsRetail))} vs. pump price.</div>`;
   } else {
     h+=`<div class="save">No fuel needed: the truck can make it with the fuel it has and stay above ${o.reserve} gal.</div>`;
   }
