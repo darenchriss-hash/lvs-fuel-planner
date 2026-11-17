@@ -140,9 +140,7 @@ code{font-size:12px;word-break:break-all}
         <p class="hint" id="eldMsg" style="margin-top:6px">Location and fuel % fill in automatically when you pick a truck (number or VIN).</p>
         <div id="eldCard" style="margin-top:6px;font-size:14px;line-height:1.5"></div>
       </div>
-      <label for="hos">Driver hours left today (from ELD)</label>
-      <input id="hos" type="number" min="0" max="11" step="0.5" value="11">
-      <p class="hint" style="margin-top:4px">Check the driver's available drive time in the ELD and enter it. 11 = fresh driver.</p>
+      <input id="hos" type="hidden" value="11">
       <div class="row2">
         <div><label for="tank">Tank, gal</label><input id="tank" type="number" min="50" max="400" value="150"></div>
         <div><label for="now">Fuel now, %</label><input id="now" type="number" min="0" max="100" value="100"></div>
