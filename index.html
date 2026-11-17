@@ -114,17 +114,6 @@ code{font-size:12px;word-break:break-all}
   <div class="layout">
     <section class="panel" aria-labelledby="tripH">
       <h2 id="tripH">Trip</h2>
-      <label for="from">A: Start</label>
-      <input id="from" list="places" placeholder="Chicago, IL" autocomplete="off">
-      <label for="to">B: Delivery</label>
-      <input id="to" list="places" placeholder="Dallas, TX" autocomplete="off">
-      <label for="via">C: Next stop (optional)</label>
-      <input id="via" list="places" placeholder="e.g. Houston, TX" autocomplete="off">
-      <div id="moreStops"></div>
-      <button class="ghost" type="button" id="addStop" style="margin-top:8px;width:100%">+ Add stop</button>
-      <p class="hint" style="margin-top:4px">Add every stop of the trip in order (pickups, deliveries, next load). Fuel is planned for the whole trip, so the driver doesn't fuel twice when once is enough.</p>
-      <label for="rate">Load rate, $ (optional)</label>
-      <input id="rate" type="number" min="0" step="1" placeholder="e.g. 2500">
       <label for="truck">Truck #</label>
       <input id="truck" list="trucks" placeholder="852" autocomplete="off">
       <datalist id="trucks"></datalist>
@@ -140,6 +129,16 @@ code{font-size:12px;word-break:break-all}
         <p class="hint" id="eldMsg" style="margin-top:6px">Location and fuel % fill in automatically when you pick a truck (number or VIN).</p>
         <div id="eldCard" style="margin-top:6px;font-size:14px;line-height:1.5"></div>
       </div>
+      <label for="from">A: Start</label>
+      <input id="from" list="places" placeholder="Chicago, IL" autocomplete="off">
+      <label for="to">B: Delivery</label>
+      <input id="to" list="places" placeholder="Dallas, TX" autocomplete="off">
+      <label for="via">C: Next stop (optional)</label>
+      <input id="via" list="places" placeholder="e.g. Houston, TX" autocomplete="off">
+      <div id="moreStops"></div>
+      <button class="ghost" type="button" id="addStop" style="margin-top:8px;width:100%">+ Add stop</button>
+      <p class="hint" style="margin-top:4px">Add every stop of the trip in order (pickups, deliveries, next load). Fuel is planned for the whole trip, so the driver doesn't fuel twice when once is enough.</p>
+      <input id="rate" type="hidden" value="">
       <input id="hos" type="hidden" value="11">
       <div class="row2">
         <div><label for="tank">Tank, gal</label><input id="tank" type="number" min="50" max="400" value="150"></div>
@@ -147,6 +146,7 @@ code{font-size:12px;word-break:break-all}
         <div><label for="mpg">MPG</label><input id="mpg" type="number" step="0.1" min="3" max="12" value="6.5"></div>
         <div><label for="reserve">Never below, gal</label><input id="reserve" type="number" min="10" max="150" value="30"></div>
       </div>
+      <p class="hint" id="fleetNote" style="margin-top:4px">Pick a truck: tank size and MPG fill in automatically.</p>
       <label for="detour">Max off route, miles</label>
       <input id="detour" type="number" min="1" max="25" value="5">
       <label for="depart">Departure (optional)</label>
@@ -615,7 +615,7 @@ function addStop(){ const n=3+(++stopCount); const L=String.fromCharCode(64+n);
 
 /* ---------- company / ELD ---------- */
 const ELD={LVS:{company:"LVS Logistics",eld:"Five ELD",url:""},TAU:{company:"TAU LLC",eld:"ZigZag ELD",url:""}};
-const TRUCKS="001 01 002 111 852 888 1016 1201 1202 1210 1493 1597 2011 2263 2316 2396 2425 2692 2722 3020 3821 3863 3906 4080 4277 5066 5093 5103 5106 5138 5565 5883 6021 6534 7709".split(" ");
+const TRUCKS="01 002 010 100 111 744 782 852 888 0633 1016 1057 1201 1202 1207 1210 1226 1493 1569 1597 2011 2263 2316 2396 2425 2536 2692 3020 3120 3821 3863 3906 4080 4277 5039 5066 5093 5103 5106 5138 5565 5883 6021 6534 7709 9007 9338".split(" ");
 function companyName(){ const c=ELD[$("company").value]||ELD.LVS; return c.company+", "+c.eld; }
 /* ---------- Five ELD (through our server helper: keys stay on the server) ---------- */
 let ELDUNITS={};
@@ -633,6 +633,11 @@ async function eldLoad(){
     $("eldMsg").textContent="Five ELD: "+Object.keys(ELDUNITS).length+" trucks loaded. Pick a truck #.";
     if($("truck").value.trim()) eldFill();
   }catch(e){ $("eldMsg").textContent="Five ELD error: "+e.message; } }
+/* ---------- per-truck tank and MPG (from Relay fill-ups 16 Jul - 17 Nov 2026) ---------- */
+const FLEET_TANK={"1":200,"2":200,"10":200,"31":200,"111":240,"633":240,"707":150,"744":240,"782":150,"852":240,"888":200,"1057":200,"1170":200,"1201":200,"1202":200,"1205":200,"1207":200,"1210":200,"1284":250,"1493":150,"1596":150,"1597":200,"2011":120,"2263":200,"2297":150,"2316":200,"2396":200,"2425":200,"2536":120,"3496":200,"3821":120,"3863":150,"3906":200,"4080":150,"4277":150,"5066":150,"5093":150,"5103":200,"5106":150,"5138":250,"5565":200,"5883":240,"6021":150,"6534":150,"7709":200,"7762":150,"8186":150,"9007":120,"9338":150}, FLEET_MPG={"2":6.2,"1201":6.2,"1205":8.6,"1210":6.9,"1493":7.3,"1597":7.4,"2396":6.8,"2536":5.5,"3821":7.5,"3863":7,"4080":6,"4277":6.5,"5066":5.5,"5093":5.9,"5565":6.7,"5883":5.6,"6021":6,"7709":5.9,"7762":5.9}, FLEET_AVG_MPG=6.2;
+function fleetFill(){ const k=String($("truck").value||"").trim().replace(/^0+(?=\d)/,""); const n=$("fleetNote"); if(!k){ if(n) n.textContent="Pick a truck: tank size and MPG fill in automatically."; return; }
+  const tk=FLEET_TANK[k], m=FLEET_MPG[k]; $("tank").value=tk||150; $("mpg").value=m||FLEET_AVG_MPG;
+  if(n) n.textContent="Truck "+k+": tank "+(tk?tk+" gal (estimated from Relay fill-ups)":$("tank").value+" gal (default, no Relay data)")+" \u00b7 MPG "+(m?m+" (from Relay odometer)":FLEET_AVG_MPG+" (fleet average, not enough data for this truck)")+". Change it if you know better."; }
 function eldFind(v){ v=String(v||"").trim().toUpperCase(); if(!v) return null; if(ELDUNITS[v]) return ELDUNITS[v];
   const all=Object.values(ELDUNITS); const z=s=>String(s||"").replace(/^0+(?=\d)/,""); const byNum=all.find(x=>z(x.truck_number)===z(v)); if(byNum) return byNum; return all.find(x=>String(x.vin||"").toUpperCase()===v) || (v.length>=4 ? all.find(x=>String(x.vin||"").toUpperCase().endsWith(v)) : null) || null; }
 function eldFill(){ const x=eldFind($("truck").value); const box=$("eldCard"); if(!x){ if(box) box.innerHTML=($("truck").value.trim()&&Object.keys(ELDUNITS).length)?`<div class="hint" style="margin:0">Truck ${esc($("truck").value.trim())} is not in LVS Five ELD (maybe TAU / ZigZag, sold, or a different number). Enter start and fuel % by hand.</div>`:""; return; }
@@ -855,7 +860,7 @@ $("addStop").onclick=addStop;
 loadCities();
 document.addEventListener("input",e=>{ const t=e.target; if(t && t.getAttribute && t.getAttribute("list")==="places") suggest(t.value); });
 $("truck").addEventListener("change",fillTruck);
-$("truck").addEventListener("change",eldFill);
+$("truck").addEventListener("change",()=>{ const b=$("truck").value; fleetFill(); eldFill(); if($("truck").value!==b){ fleetFill(); eldFill(); } });
 $("tank").addEventListener("change",()=>{ if(eldFind($("truck").value)) eldFill(); });
 $("eldLoad").onclick=eldLoad;
 $("eldSet").onclick=()=>{ const c=$("eldCfg"); c.style.display=c.style.display==="none"?"block":"none"; };
