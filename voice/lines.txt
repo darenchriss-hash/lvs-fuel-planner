@@ -5,8 +5,8 @@ Step one: pick the truck. Click Truck number and type it in. You can also type t
 The site pulls this truck from Five ELD automatically: where the truck is right now, how much fuel is in the tank, and when the ELD last updated.
 If the ELD data is older than six hours, the site warns you, so call the driver. This button refreshes the ELD data.
 Step two: the start city is already filled in from the truck's location. You can change it to any city in the U.S.
-Step three: type the delivery city, and pick it from the list. For example, Dallas, Texas.
-Is there a next load expected after this delivery? Type it in C, for example Houston, Texas. For more stops, press Add stop. Fuel is planned for the whole trip, so the driver doesn't fuel twice.
+Step three: type the delivery city, and pick it from the list. For example, Chicago, Illinois.
+Is there a next load expected after this delivery? Type it in C, for example Denver, Colorado. For more stops, press Add stop. Fuel is planned for the whole trip, so the driver doesn't fuel twice.
 Step four: check the truck numbers. The tank size and the fuel level fill in by themselves. MPG is six point five, and thirty gallons is the safety reserve. Only change a number if you know better.
 Max off route is how far a station can be from the route. Five miles is good. Departure time is optional.
 Step five: press Plan fuel stops.
