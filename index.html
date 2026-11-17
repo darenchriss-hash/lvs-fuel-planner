@@ -629,13 +629,13 @@ async function eldLoad(){
   try{ const r=await fetch(u+"/units"); const j=await r.json(); if(!r.ok||j.error) throw new Error(j.error||("HTTP "+r.status));
     await Promise.race([loadCities(), new Promise(x=>setTimeout(x,6000))]);
     ELDUNITS={}; (j.units||[]).forEach(x=>{ if(x.truck_number) ELDUNITS[String(x.truck_number).trim()]=x; });
-    const dl=$("trucks"); const have=new Set([...dl.options].map(o=>o.value)); Object.keys(ELDUNITS).forEach(k=>{ const x=ELDUNITS[k], lab=(x.vin?"VIN "+x.vin:"")+(isFinite(x.fuelLevelPercent)?" \u00b7 "+Math.round(x.fuelLevelPercent)+"%":""); const o=[...dl.options].find(o=>o.value===k); if(o) o.label=lab; else dl.insertAdjacentHTML("beforeend",`<option value="${esc(k)}" label="${esc(lab)}"></option>`); });
+    const dl=$("trucks"); const have=new Set([...dl.options].map(o=>o.value)); [...dl.options].forEach(o=>{ if(!eldFind(o.value)) o.label="not in Five ELD"; }); Object.keys(ELDUNITS).forEach(k=>{ const x=ELDUNITS[k], lab=(x.vin?"VIN "+x.vin:"")+(isFinite(x.fuelLevelPercent)?" \u00b7 "+Math.round(x.fuelLevelPercent)+"%":""); const o=[...dl.options].find(o=>o.value===k); if(o) o.label=lab; else dl.insertAdjacentHTML("beforeend",`<option value="${esc(k)}" label="${esc(lab)}"></option>`); });
     $("eldMsg").textContent="Five ELD: "+Object.keys(ELDUNITS).length+" trucks loaded. Pick a truck #.";
     if($("truck").value.trim()) eldFill();
   }catch(e){ $("eldMsg").textContent="Five ELD error: "+e.message; } }
 function eldFind(v){ v=String(v||"").trim().toUpperCase(); if(!v) return null; if(ELDUNITS[v]) return ELDUNITS[v];
-  const all=Object.values(ELDUNITS); return all.find(x=>String(x.vin||"").toUpperCase()===v) || (v.length>=4 ? all.find(x=>String(x.vin||"").toUpperCase().endsWith(v)) : null) || null; }
-function eldFill(){ const x=eldFind($("truck").value); const box=$("eldCard"); if(!x){ if(box) box.innerHTML=""; return; }
+  const all=Object.values(ELDUNITS); const z=s=>String(s||"").replace(/^0+(?=\d)/,""); const byNum=all.find(x=>z(x.truck_number)===z(v)); if(byNum) return byNum; return all.find(x=>String(x.vin||"").toUpperCase()===v) || (v.length>=4 ? all.find(x=>String(x.vin||"").toUpperCase().endsWith(v)) : null) || null; }
+function eldFill(){ const x=eldFind($("truck").value); const box=$("eldCard"); if(!x){ if(box) box.innerHTML=($("truck").value.trim()&&Object.keys(ELDUNITS).length)?`<div class="hint" style="margin:0">Truck ${esc($("truck").value.trim())} is not in LVS Five ELD (maybe TAU / ZigZag, sold, or a different number). Enter start and fuel % by hand.</div>`:""; return; }
   if(x.truck_number && $("truck").value.trim()!==String(x.truck_number)){ $("truck").value=x.truck_number; fillTruck(); }
   const cap=+$("tank").value||150; let loc="no GPS from ELD", fuel="no fuel data";
   if(x.coordinates&&isFinite(x.coordinates.lat)){ const c=nearestCity(x.coordinates.lat,x.coordinates.lng);
