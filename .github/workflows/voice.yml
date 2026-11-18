@@ -2,7 +2,7 @@ name: voice
 on:
   push:
     branches: [main]
-    paths: ['voice/lines.txt', '.github/workflows/voice.yml']
+    paths: ['voice/*.txt', '.github/workflows/voice.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,20 +18,23 @@ jobs:
       - name: Make audio
         run: |
           mkdir -p out
+          for f in voice/*.txt; do
+          name=$(basename "$f" .txt); mkdir -p "out/$name"
           i=0
           while IFS= read -r line || [ -n "$line" ]; do
             [ -z "$line" ] && continue
             n=$(printf "%02d" $i)
-            if ! edge-tts --voice en-US-JennyNeural --text "$line" --write-media out/$n.mp3; then
+            if ! edge-tts --voice en-US-JennyNeural --text "$line" --write-media "out/$name/$n.mp3"; then
               if [ ! -f voice.onnx ]; then
                 curl -sL -o voice.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
                 curl -sL -o voice.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
               fi
-              echo "$line" | piper -m voice.onnx -f out/$n.wav
+              echo "$line" | piper -m voice.onnx -f "out/$name/$n.wav"
             fi
             i=$((i+1))
-          done < voice/lines.txt
-          ls -la out
+          done < "$f"
+          done
+          ls -laR out
       - name: Push to tts branch
         run: |
           git config user.name "voice-bot"
