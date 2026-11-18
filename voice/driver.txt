@@ -1,0 +1,11 @@
+Hi drivers! This short video shows what to do when dispatch sends you a fuel plan. It saves the company money on every trip, so please follow it.
+Dispatch sends the fuel plan to you by WhatsApp, Telegram, or text message. It shows your truck, the route, and the fuel stops.
+Each stop has the station name, the full address, about which mile it is, how many gallons to buy, and our price.
+First, put the whole trip into your truck GPS, in this order: your pickup or start, then the fuel stops and the delivery, in the order of the miles.
+In this example: start in Livingston, Alabama. Fuel stop one, Love's number 244 in Jackson, Tennessee. Then the delivery in Chicago. Then fuel stop two, Love's number 361 in Newton, Iowa. And the next stop, Denver.
+Always use a truck GPS with truck settings, to avoid low bridges and roads closed to trucks.
+At the fuel stop, pay only with Relay. Request the fuel code in the Relay app, and enter your truck number and your odometer.
+Fuel about the gallons written in the plan. No small top ups, and no other stations. The plan is built so you reach the next stop with a safe reserve.
+Important: if we send you two fuel stops, we expect exactly two fuel ups, at these two stations. Not more, and not less.
+If a station is closed, the route changes, or you are running low on fuel, call dispatch before you fuel anywhere else. We will send you a new plan.
+That's it. Put the stops in your GPS, fuel only at the planned stations with Relay, buy the planned gallons, and call dispatch if anything changes. Thank you, and drive safe!
